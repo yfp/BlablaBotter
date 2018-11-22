@@ -50,17 +50,14 @@ def run_bot(token)
           bot.api.send_message(chat_id: message.chat.id, text: text)
         elsif words[0] == '/bbface'
           photo_waiting_list.push( user_id: message.from.id, timestamp: Time.now() )
-          # name = message.from.first_name+message.from.lastname
+          name = "#{message.from.first_name}#{message.from.last_name}"
+          bname = get_greeting(name: name)
           bot.api.send_message(chat_id: message.chat.id,
-            text: "Отлично! Я жду вашей фотокарточки!")
+            text: "Отлично, г#{bname[1..-1]} Я жду Вашей фотокарточки!")
         elsif 
-          matches = words.map { |e| e.match(/госпо(дин(а|у|е|ом)?|ж(а|у|е|ой)?)/) }
-          print words
-          puts
-          print matches
-          puts
           pos = words.find_index{ |e| e.match(/госпо(дин(а|у|е|ом)?|ж(а|у|е|ой)?)/) }
           if pos
+            print message.text + "\n"
             name = if pos < words.length - 1
               words[pos+1]
             else nil end
@@ -78,7 +75,6 @@ def run_bot(token)
           photo = message.photo.max_by(&:width)
           result = bot.api.get_file(file_id: photo.file_id)
           if result['ok']
-            print result['result']
             url = "https://api.telegram.org/file/bot#{token}/#{result['result']['file_path']}"
             ext = result['result']['file_path'].split('.')[-1]
             input_filename = "photos/input/#{photo.file_id}.#{ext}"
