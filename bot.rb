@@ -41,7 +41,10 @@ def run_bot(token)
     bot.listen do |message|
       if message.text
         words = UnicodeUtils.downcase(message.text).split(' ')
-        if words[0] == '/bb'
+        if words[0] == '/joinchat'
+          # link = if words.length>1 then words[1] else "" end
+          # print bot.messages.importChatInvite
+        elsif words[0] == '/bb'
           name = nil
           if words.length > 1 and words[1].match(/^\p{Cyrillic}+$/)
             name = words[1]
@@ -84,8 +87,14 @@ def run_bot(token)
             end
             %x( python face-processor/util.py -i #{input_filename} -o #{output_filename} )
             # bot.api.send_message(chat_id: message.chat.id, text: "Обработано!")
-            bot.api.send_photo(chat_id: message.chat.id,
-              photo: Faraday::UploadIO.new(output_filename, result['result']['mime_type']))
+            if File.file?(output_filename)
+              bot.api.send_photo(chat_id: message.chat.id,
+                photo: Faraday::UploadIO.new(output_filename, result['result']['mime_type']))
+            else
+              bname = get_greeting()
+              bot.api.send_message(chat_id: message.chat.id,
+                text: "У меня не получился г#{bname[1..-1]}")
+            end
           end
           
           # print file
