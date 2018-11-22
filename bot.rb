@@ -18,23 +18,48 @@ module BName
   end
 end
 
+def get_greeting(name: nil, gender: :male)
+  title = if gender == :male
+    "Господин"
+  else "Госпожа" end
+  if name
+    name.gsub!(/[^\p{Cyrillic}]+/, "")
+  else name = "" end
+  bname = if name == ""
+    BName.create_default_bname
+  else
+    bbfy(UnicodeUtils.downcase(name))
+  end
+  "#{title} #{bname}!"
+end
 
 def run_bot(token)
   Telegram::Bot::Client.run(token) do |bot|
     bot.listen do |message|
       if message.text
-        words = message.text.split(' ')
-        case words[0]
-        when '/bb'
-          if words.length > 1
-            name = UnicodeUtils.downcase(words[1])
-            if name.match(/^\p{Cyrillic}+$/)
-              bname = bbfy(name.encode('utf-8'))
-            end
+        words = UnicodeUtils.downcase(message.text).split(' ')
+        if words[0] == '/bb'
+          name = nil
+          if words.length > 1 and words[1].match(/^\p{Cyrillic}+$/)
+            name = words[1]
           end
-          bname ||= BName.create_default_bname
-
-          bot.api.send_message(chat_id: message.chat.id, text: "Господин #{bname}!")
+          text = get_greeting(name: name)
+          bot.api.send_message(chat_id: message.chat.id, text: text)
+        elsif 
+          matches = words.map { |e| e.match(/госпо(дин(а|у|е|ом)?|ж(а|у|е|ой)?)/) }
+          print words
+          puts
+          print matches
+          puts
+          pos = words.find_index{ |e| e.match(/госпо(дин(а|у|е|ом)?|ж(а|у|е|ой)?)/) }
+          if pos
+            name = if pos < words.length - 1
+              words[pos+1]
+            else nil end
+            gender = if words[pos].match /ж/ then :female else :male end
+            text = get_greeting(name: name, gender: gender)
+            bot.api.send_message(chat_id: message.chat.id, text: text)
+          end
         end
       end
       if message.photo and message.photo.length > 0
