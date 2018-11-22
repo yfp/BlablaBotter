@@ -44,6 +44,9 @@ def process_photo2(in_file, out_file, detector, predictor):
 
     faces = detector(img, 1)
 
+    if len(faces) == 0:
+      sys.exit(2)
+
     for face_rect in faces:
         shape = predictor(img, face_rect)
         shape = shape_to_np(shape)
@@ -69,6 +72,7 @@ def process_photo2(in_file, out_file, detector, predictor):
         for l in range(3):
             out_image[slx, sly, l] = out_image[slx, sly, l] * (1 - mask) + img[slx,sly, l][::-1, :] * mask
     
+
     dlib.save_image(out_image, out_file)
     return out_image
 
