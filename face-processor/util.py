@@ -1,107 +1,57 @@
-#!/usr/bin/env python
-# coding: utf-8
-
-
-# Example python util.py --image photo.jpg  --output currentoutput.png
-
-# %pylab inline
-import scipy
-import numpy as np
+import os
+import sys
 import dlib
-import cv2
 import argparse
+import numpy as np
 
-import os 
-dir_path = os.path.dirname(os.path.realpath(__file__))
 
 def shape_to_np(shape, dtype="int"):
-	coords = np.zeros((68, 2), dtype=dtype)
-	for i in range(0, 68):
-		coords[i] = (shape.part(i).x, shape.part(i).y)
-    # return the list of (x, y)-coordinates
-	return coords
-
-ap = argparse.ArgumentParser()
-ap.add_argument("-i", "--input", required=True,
-	help="path to input image")
-ap.add_argument("-o", "--output", required=True,
-	help="path to output image")
-args = vars(ap.parse_args())
+    coords = np.zeros((68, 2), dtype=dtype)
+    for i in range(0, 68):
+        coords[i] = (shape.part(i).x, shape.part(i).y)
+    # return the list of (x, y) - coordinates
+    return coords
 
 
-# In[56]:
+def process_photo(in_file, out_file, detector, predictor):
+    img = dlib.load_rgb_image(in_file)
+    out_image = img.copy()
+
+    faces = detector(img, 1)
+
+    if len(faces) == 0:
+    	sys.exit(2)
+
+    for face_rect in faces:
+        shape = predictor(img, face_rect)
+        shape = shape_to_np(shape)
+        mouth = shape[48:68]
+
+        left,  top = np.min(mouth, axis=0)
+        right, bot = np.max(mouth, axis=0)
+        padd = (bot - top) / 2
+
+        sly, slx = slice(left - padd, right + padd), slice(top - padd, bot + padd)
+        out_image[slx, sly] = img[slx,sly][::-1, :]
+    
+    dlib.save_image(out_image, out_file)
+    return out_image
 
 
-detector = dlib.get_frontal_face_detector()
-predictor = dlib.shape_predictor(dir_path + "/shape_predictor_68.dat")
+if __name__ == "__main__":	
+	parser = argparse.ArgumentParser()
+	parser.add_argument("-i", "--input", required=True,
+		help="path to input image")
+	parser.add_argument("-o", "--output", required=True,
+		help="path to output image")
+	args = parser.parse_args()
 
+	curr_file = os.path.realpath(__file__)
+	curr_path = os.path.dirname(curr_file)
 
-# In[3]:
+	detector = dlib.get_frontal_face_detector()
+	predictor = dlib.shape_predictor(curr_path + "/shape_predictor_68.dat")
 
-
-# load the input image, resize it, and convert it to grayscale
-image = cv2.imread(args["input"])
-#image = imutils.resize(image, width=500)
-gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
- 
-# detect faces in the grayscale image
-rects = detector(gray, 1)
-
-
-# In[4]:
-
-
-#imshow(gray)
-
-
-# In[5]:
-
-
-shape = predictor(gray, rects[0])
-shape = shape_to_np(shape)
-
-
-# In[6]:
-
-
-mouth=shape[48:68]
-
-
-# In[7]:
-
-
-left=min(mouth[:,0])
-right=max(mouth[:,0])
-top=min(mouth[:,1])
-bot=max(mouth[:,1])
-padd = int((bot-top)*0.5)
-
-
-# In[8]:
-
-
-# myrect =newgray
-# myrect = cv2.rectangle(myrect, (left-padd,top-padd), (right+padd,bot+padd), (0,255,0), 5)
-# imshow(myrect)
-
-
-# In[9]:
-
-
-g1 = image.copy()
-sly,slx = slice(left-padd ,right+padd), slice(top-padd,bot+padd)
-g1[slx, sly] = g1[slx,sly][::-1, :]
-# imshow(g1)
-
-
-# In[64]:
-
-
-cv2.imwrite(args["output"],g1)
-
-
-# In[ ]:
-
-
+	process_photo(args.input, args.output, detector, predictor)
 
 
