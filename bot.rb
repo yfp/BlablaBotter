@@ -2,6 +2,7 @@ require 'telegram/bot'
 require "unicode_utils/titlecase"
 require "unicode_utils/downcase"
 require 'open-uri'
+require 'time'
 require_relative 'ruslang'
 
 token = ENV["BICHER_BOT_API_TOKEN"]
@@ -34,7 +35,9 @@ def get_greeting(name: nil, gender: :male)
 end
 
 def run_bot(token)
+  photo_waiting_list = []
   Telegram::Bot::Client.run(token) do |bot|
+
     bot.listen do |message|
       if message.text
         words = UnicodeUtils.downcase(message.text).split(' ')
@@ -45,6 +48,11 @@ def run_bot(token)
           end
           text = get_greeting(name: name)
           bot.api.send_message(chat_id: message.chat.id, text: text)
+        elsif words[0] == '/bbface'
+          photo_waiting_list.push( user_id: message.from.id, timestamp: Time.now() )
+          # name = message.from.first_name+message.from.lastname
+          bot.api.send_message(chat_id: message.chat.id,
+            text: "Отлично! Я жду вашей фотокарточки!")
         elsif 
           matches = words.map { |e| e.match(/госпо(дин(а|у|е|ом)?|ж(а|у|е|ой)?)/) }
           print words
@@ -63,19 +71,32 @@ def run_bot(token)
         end
       end
       if message.photo and message.photo.length > 0
-        photo = message.photo.max_by(&:width)
-        result = bot.api.get_file(file_id: photo.file_id)
-        if result['ok']
-          print result['result']
-          url = "https://api.telegram.org/file/bot#{token}/#{result['result']['file_path']}"
-          open("photos/input/#{photo.file_id}.png", 'wb') do |file|
-            file << open(url).read
+        pwl_pos = photo_waiting_list.find_index {|e| e[:user_id] == message.from.id}
+        pwl_pos = true
+        if pwl_pos
+          # photo_waiting_list.delete_at pwl_pos
+          photo = message.photo.max_by(&:width)
+          result = bot.api.get_file(file_id: photo.file_id)
+          if result['ok']
+            print result['result']
+            url = "https://api.telegram.org/file/bot#{token}/#{result['result']['file_path']}"
+            ext = result['result']['file_path'].split('.')[-1]
+            input_filename = "photos/input/#{photo.file_id}.#{ext}"
+            output_filename = "photos/output/#{photo.file_id}.#{ext}"
+            open(input_filename, 'wb') do |file|
+              file << open(url).read
+            end
+            %x( python face-processor/util.py -i #{input_filename} -o #{output_filename} )
+            # bot.api.send_message(chat_id: message.chat.id, text: "Обработано!")
+            bot.api.send_photo(chat_id: message.chat.id,
+              photo: Faraday::UploadIO.new(output_filename, result['result']['mime_type']))
           end
+          
+          # print file
+          # open("photos/#{photo.file_id}.png", 'wb') do |file|
+          #   file << open('http://example.com/image.png').read
+          # end
         end
-        # print file
-        # open("photos/#{photo.file_id}.png", 'wb') do |file|
-        #   file << open('http://example.com/image.png').read
-        # end
       end
     end
   end

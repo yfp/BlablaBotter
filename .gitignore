@@ -3,3 +3,6 @@
 Gemfile.lock
 *.ipynb_
 *.ipynb
+
+photos/input/*.*
+photos/output/*.*
