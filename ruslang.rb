@@ -12,9 +12,11 @@ def just_split_into_syllabes(word)
 	end
 	if syllabes[-1].match /[аяоёуюиэеы]/
 		return syllabes
-	else
-		syllabes[-2] += syllabes[-1]
+	elsif syllabes.length > 1
+		syllabes[-2] += syllabes[-1] || ""
 		return syllabes[0..-2]
+	else
+		return syllabes
 	end
 end
 
@@ -50,8 +52,13 @@ def create3(s, v, e)
 end
 
 def bbfy(name)
-	# name = "Кудряшова"
 	syllabes =  just_split_into_syllabes(name)
+	if syllabes.length == 0
+		syllabes[0] = %w(Брейх Брумс Блямс).sample
+	end
+	unless syllabes[0].match /[аяоёуюиэеы]/
+		syllabes[0] = "и" + syllabes[0]
+	end
 	if syllabes.length == 1
 		syllabes[1] = "нер"
 	end
@@ -60,7 +67,5 @@ def bbfy(name)
 	end
 	bname = create1(*syllike(syllabes[0])) \
 		 + create2(*syllike(syllabes[1])) \
-		 + create3(*syllike(syllabes[2])) + %w[хер тер тор нер].sample
+		 + create3(*syllike(syllabes[2])) + %w[хер тер тор нер цнер].sample
 end
-
-bbfy(UnicodeUtils.downcase("галиакберов").encode('utf-8'))

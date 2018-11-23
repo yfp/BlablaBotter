@@ -29,7 +29,7 @@ def get_greeting(name: nil, gender: :male)
   bname = if name == ""
     BName.create_default_bname
   else
-    bbfy(UnicodeUtils.downcase(name))
+    bbfy(UnicodeUtils.downcase(name)) || BName.create_default_bname
   end
   "#{title} #{bname}!"
 end
