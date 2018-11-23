@@ -39,7 +39,7 @@ def run_bot(token)
   Telegram::Bot::Client.run(token) do |bot|
 
     bot.listen do |message|
-      if message.text
+      if message.text and not message.forward_from
         words = UnicodeUtils.downcase(message.text).split(' ')
         if words[0] == '/joinchat'
           # link = if words.length>1 then words[1] else "" end
@@ -52,7 +52,8 @@ def run_bot(token)
           text = get_greeting(name: name)
           bot.api.send_message(chat_id: message.chat.id, text: text)
         elsif words[0] == '/bbface'
-          photo_waiting_list.push( user_id: message.from.id, timestamp: Time.now() )
+          photo_waiting_list.push( user_id: message.from.id,
+            chat_id: message.chat.id, timestamp: Time.now() )
           name = "#{message.from.first_name}#{message.from.last_name}"
           bname = get_greeting(name: name)
           bot.api.send_message(chat_id: message.chat.id,
@@ -71,9 +72,9 @@ def run_bot(token)
         end
       end
       if message.photo and message.photo.length > 0
-        pwl_pos = photo_waiting_list.find_index {|e| e[:user_id] == message.from.id}
+        pwl_pos = photo_waiting_list.find_index {|e| e[:user_id] == message.from.id and e[:chat_id] == message.chat.id }
         if pwl_pos
-          # photo_waiting_list.delete_at pwl_pos
+          photo_waiting_list.delete_at pwl_pos
           photo = message.photo.max_by(&:width)
           result = bot.api.get_file(file_id: photo.file_id)
           if result['ok']
