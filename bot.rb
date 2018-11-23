@@ -72,7 +72,6 @@ def run_bot(token)
       end
       if message.photo and message.photo.length > 0
         pwl_pos = photo_waiting_list.find_index {|e| e[:user_id] == message.from.id}
-        pwl_pos = true
         if pwl_pos
           # photo_waiting_list.delete_at pwl_pos
           photo = message.photo.max_by(&:width)
